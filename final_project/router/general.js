@@ -29,7 +29,7 @@ public_users.post("/register", (req,res) => {
         return res.status(404).json({message: "User already exists! Choose another username"});
       }
   }
-  return res.status(300).json({message: "Yet to be implemented"});
+  return res.status(300).json({message: "Unable to register user"});
 });
 
 // 1 Get the book list available in the shop
