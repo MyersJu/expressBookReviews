@@ -4,6 +4,17 @@ let isValid = require("./auth_users.js").isValid;
 let users = require("./auth_users.js").users;
 const public_users = express.Router();
 
+const doesExist = (username) => {
+  let userswithsamename = users.filter((user) => {
+      return user.username === username;
+  });
+  if (userswithsamename.length > 0) {
+      return true;
+  } else {
+      return false;
+  }
+}
+
 // 6
 public_users.post("/register", (req,res) => {
   const username = req.body.username;
@@ -82,5 +93,102 @@ public_users.get('/review/:isbn',function (req, res) {
 
   return res.status(200).json({ reviews: book.reviews });
 });
+
+async function getAllBooks() {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      resolve(Object.values(books));
+    }, 1000); 
+  });
+}
+
+//  10 
+public_users.get('/', async function (req, res) {
+  try {
+    const booksList = await getAllBooks(); 
+    return res.status(200).json(booksList); 
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to get books", error: error.message });
+  }
+});
+
+function searchBookByISBN(isbn) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      const book = books[isbn];  
+      if (book) {
+        resolve(book); 
+      } else {
+        reject(new Error("Book not found")); 
+      }
+    }, 1000); 
+  });
+}
+
+//  11
+public_users.get('/isbn/:isbn', function (req, res) {
+  const ISBN = req.params.isbn; 
+  searchBookByISBN(ISBN)
+    .then(book => {
+      if (book) {
+        return res.status(200).json(book); 
+      } else {
+        return res.status(404).json({ message: "Book not found" }); 
+      }
+    })
+    .catch(error => {
+      return res.status(500).json({ message: "Error searching for book", error: error.message });
+    });
+});
+
+async function searchByAuthor(author) {
+  try {
+    const result = Object.values(books).filter(book => book.author.toLowerCase().includes(author.toLowerCase()));
+    
+    if (result.length === 0) {
+      throw new Error(`No books found for author: ${author}`);
+    }
+
+    return result;
+  } catch (error) {
+    throw new Error(error.message);
+  }
+}
+
+function searchByTitlePromise(title) {
+  return new Promise((resolve, reject) => {
+    const result = Object.values(books).filter(book => book.title.toLowerCase().includes(title.toLowerCase()));
+    
+    if (result.length === 0) {
+      reject(`No books found for title: ${title}`);
+    } else {
+      resolve(result);
+    }
+  });
+}
+
+//  12 
+public_users.get('/author/:author', async (req, res) => {
+  const author = req.params.author;
+  try {
+    const books = await searchByAuthor(author);
+    res.status(200).json(books);
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+});
+
+//  13
+public_users.get('/title/:title', (req, res) => {
+  const title = req.params.title;
+  searchByTitlePromise(title)
+    .then(books => {
+      res.status(200).json(books);
+    })
+    .catch(error => {
+      res.status(404).json({ message: error });
+    });
+});
+
 
 module.exports.general = public_users;
